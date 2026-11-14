@@ -39,8 +39,15 @@ class AppPanelProvider extends PanelProvider
             ->emailVerification()
             ->profile(EditProfile::class, isSimple: false)
             ->colors([
-                'primary' => Color::Amber,
+                'primary' => Color::Violet,
+                'gray' => Color::Slate,
+                'info' => Color::Sky,
+                'success' => Color::Emerald,
+                'warning' => Color::Amber,
+                'danger' => Color::Rose,
             ])
+            ->font('Inter', provider: \Filament\FontProviders\GoogleFontProvider::class)
+            ->viteTheme('resources/css/filament/app.css')
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
             ->pages([

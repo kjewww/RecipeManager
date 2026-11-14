@@ -25,6 +25,7 @@ class User extends Authenticatable implements FilamentUser, HasName, MustVerifyE
     use SoftDeletes;
 
     protected $fillable = [
+        'author_id',
         'email',
         'locale',
         'email_verified_at',
@@ -75,7 +76,7 @@ class User extends Authenticatable implements FilamentUser, HasName, MustVerifyE
 
     public function getFilamentName(): string
     {
-        $name = (string) $this->author->name;
+        $name = (string) ($this->author?->name ?? '');
 
         return $name !== '' ? $name : (string) ($this->email ?? 'User');
     }

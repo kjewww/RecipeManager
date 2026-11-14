@@ -1,63 +1,134 @@
-
-/* Tailwind */
+/* ─── Tailwind v4 ────────────────────────────────────────────────── */
 @import "tailwindcss";
 
-/* Views */
+/* ─── Source paths ───────────────────────────────────────────────── */
 @source '../views';
 @source '../../storage/framework/views';
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views';
 @custom-variant dark (&:where(.dark, .dark *));
 
-@theme static {
-    /* --font-sans: 'Nunito', ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
-    --font-serif: 'Lora', ui-serif, Georgia, Cambria, "Times New Roman", Times, serif; */
+/* ─── Google Fonts ───────────────────────────────────────────────── */
+/* Loaded via <link> tag below to avoid Vite bundling issues */
 
+/* ─── Static theme (breakpoints + palette alias) ─────────────────── */
+@theme static {
     --breakpoint-xxs: 26rem;
     --breakpoint-xs: 30rem;
     --breakpoint-cards: 53.75rem;
 
-    --color-zinc-50: var(--color-gray-50);
-    --color-zinc-100: var(--color-gray-100);
-    --color-zinc-200: var(--color-gray-200);
-    --color-zinc-300: var(--color-gray-300);
-    --color-zinc-400: var(--color-gray-400);
-    --color-zinc-500: var(--color-gray-500);
-    --color-zinc-600: var(--color-gray-600);
-    --color-zinc-700: var(--color-gray-700);
-    --color-zinc-800: var(--color-gray-800);
-    --color-zinc-900: var(--color-gray-900);
-    --color-zinc-950: var(--color-gray-950);
+    /* Alias zinc → slate for a slightly cooler neutral */
+    --color-zinc-50:  #f8fafc;
+    --color-zinc-100: #f1f5f9;
+    --color-zinc-200: #e2e8f0;
+    --color-zinc-300: #cbd5e1;
+    --color-zinc-400: #94a3b8;
+    --color-zinc-500: #64748b;
+    --color-zinc-600: #475569;
+    --color-zinc-700: #334155;
+    --color-zinc-800: #1e293b;
+    --color-zinc-900: #0f172a;
+    --color-zinc-950: #020617;
 }
 
+/* ─── Dynamic theme ──────────────────────────────────────────────── */
 @theme {
-    --color-accent: var(--color-violet-500);
-    --color-accent-content: var(--color-violet-600);
-    --color-accent-foreground: var(--color-white);
+    --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji";
+    --font-serif: 'Lora', ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+
+    /* Accent = vibrant violet */
+    --color-accent:            #7c3aed;
+    --color-accent-hover:      #6d28d9;
+    --color-accent-light:      #ede9fe;
+    --color-accent-content:    #5b21b6;
+    --color-accent-foreground: #ffffff;
+
+    /* Secondary accent = indigo */
+    --color-secondary:         #4f46e5;
+    --color-secondary-light:   #e0e7ff;
+
+    /* Warm highlight */
+    --color-warm:              #f59e0b;
+    --color-warm-light:        #fef3c7;
 }
 
 @layer theme {
     .dark {
-        --color-accent: var(--color-violet-500);
-        --color-accent-content: var(--color-violet-400);
-        --color-accent-foreground: var(--color-white);
+        --color-accent:            #8b5cf6;
+        --color-accent-hover:      #7c3aed;
+        --color-accent-light:      rgba(139, 92, 246, 0.15);
+        --color-accent-content:    #a78bfa;
+        --color-accent-foreground: #ffffff;
+        --color-secondary:         #6366f1;
+        --color-secondary-light:   rgba(99, 102, 241, 0.15);
+        --color-warm:              #fbbf24;
+        --color-warm-light:        rgba(251, 191, 36, 0.15);
     }
 }
 
-/* Filament: reduce spacing in table column toggle items */
+/* ─── Base ───────────────────────────────────────────────────────── */
+@layer base {
+    *, *::before, *::after {
+        box-sizing: border-box;
+    }
+
+    html {
+        font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: optimizeLegibility;
+        scroll-behavior: smooth;
+    }
+
+    ::selection {
+        background-color: rgba(124, 58, 237, 0.2);
+        color: inherit;
+    }
+
+    .dark ::selection {
+        background-color: rgba(139, 92, 246, 0.3);
+    }
+}
+
+/* ─── Components ─────────────────────────────────────────────────── */
 @layer components {
+    /* Filament: tighten column toggle items */
     .fi-ta-col-manager-item {
-        padding-top: 0.125rem; /* 2px */
-        padding-bottom: 0.125rem; /* 2px */
+        padding-top: 0.125rem;
+        padding-bottom: 0.125rem;
     }
 
     .fi-ta-col-manager-label {
         display: flex;
         align-items: center;
-        gap: 0.5rem; /* reduce gap between checkbox and label */
+        gap: 0.5rem;
     }
 
     .fi-ta-col-manager-label .fi-checkbox-input {
         margin-right: 0.25rem;
     }
 
+    /* Pill badge */
+    .badge {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 9999px;
+        padding: 0.25rem 0.625rem;
+        font-size: 0.6875rem;
+        font-weight: 700;
+        line-height: 1;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+    }
+
+    /* Glass card */
+    .glass-card {
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.5);
+    }
+
+    .dark .glass-card {
+        background: rgba(15, 23, 42, 0.7);
+        border-color: rgba(255, 255, 255, 0.06);
+    }
 }
