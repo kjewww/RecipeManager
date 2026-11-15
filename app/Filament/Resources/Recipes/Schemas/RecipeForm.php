@@ -355,6 +355,39 @@ class RecipeForm
             ->max('position') + 1;
     }
 
+    /**
+     * Builds a repeater of ingredient rows. The ungrouped variant clears
+     * `ingredient_group_id` so its rows never belong to a group.
+     */
+    private static function ingredientRepeater(string $name, string $label, bool $ungrouped = false): Repeater
+    {
+        $repeater = Repeater::make($name)
+            ->label($label)
+            ->relationship($name)
+            ->orderColumn('position')
+            ->reorderable()
+            ->extraItemActions([self::alternativesAction(), self::moveIngredientAction()])
+            ->table(self::ingredientTableColumns())
+            ->schema(self::ingredientFields())
+            ->columnSpanFull();
+
+        if ($ungrouped) {
+            $repeater
+                ->mutateRelationshipDataBeforeCreateUsing(function (array $data): array {
+                    $data['ingredient_group_id'] = null;
+
+                    return $data;
+                })
+                ->mutateRelationshipDataBeforeSaveUsing(function (array $data): array {
+                    $data['ingredient_group_id'] = null;
+
+                    return $data;
+                });
+        }
+
+        return $repeater;
+    }
+
     public static function configure(Schema $schema): Schema
     {
         return $schema
@@ -474,25 +507,11 @@ class RecipeForm
                     ->visibility('private')
                     ->visibleOn('edit')
                     ->columnSpanFull(),
-                Repeater::make('ungroupedIngredients')
-                    ->label(__('Ingredients without group'))
-                    ->relationship('ungroupedIngredients')
-                    ->orderColumn('position')
-                    ->mutateRelationshipDataBeforeCreateUsing(function (array $data): array {
-                        $data['ingredient_group_id'] = null;
-
-                        return $data;
-                    })
-                    ->mutateRelationshipDataBeforeSaveUsing(function (array $data): array {
-                        $data['ingredient_group_id'] = null;
-
-                        return $data;
-                    })
-                    ->reorderable()
-                    ->extraItemActions([self::alternativesAction(), self::moveIngredientAction()])
-                    ->table(self::ingredientTableColumns())
-                    ->schema(self::ingredientFields())
-                    ->columnSpanFull(),
+                self::ingredientRepeater(
+                    'ungroupedIngredients',
+                    __('Ingredients without group'),
+                    ungrouped: true,
+                ),
                 Section::make(__('Ingredient groups'))
                     ->schema([
                         Repeater::make('ingredientGroups')
@@ -506,15 +525,10 @@ class RecipeForm
                                 TextInput::make('name')
                                     ->required()
                                     ->maxLength(20),
-                                Repeater::make('topLevelIngredients')
-                                    ->label(__('Ingredients'))
-                                    ->relationship('topLevelIngredients')
-                                    ->orderColumn('position')
-                                    ->reorderable()
-                                    ->extraItemActions([self::alternativesAction(), self::moveIngredientAction()])
-                                    ->table(self::ingredientTableColumns())
-                                    ->schema(self::ingredientFields())
-                                    ->columnSpanFull(),
+                                self::ingredientRepeater(
+                                    'topLevelIngredients',
+                                    __('Ingredients'),
+                                ),
                             ])
                             ->columnSpanFull(),
                     ])
