@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Cookbooks\RelationManagers;
 use App\Models\Cookbook;
 use App\Services\CookbookSharing;
 use App\ValueObjects\CookbookGrants;
+use App\ValueObjects\CookbookInvitationData;
 use Filament\Actions\Action;
 use Filament\Actions\DetachAction;
 use Filament\Actions\EditAction;
@@ -97,9 +98,11 @@ class MembersRelationManager extends RelationManager
 
                         app(CookbookSharing::class)->share(
                             $cookbook,
-                            (string) $data['email'],
-                            $this->grantsFrom($data),
-                            user(),
+                            new CookbookInvitationData(
+                                email: (string) $data['email'],
+                                grants: $this->grantsFrom($data),
+                                invitedBy: user(),
+                            ),
                         );
 
                         // Deliberately identical whether or not the address has an account.

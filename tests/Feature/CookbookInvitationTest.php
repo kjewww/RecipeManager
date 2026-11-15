@@ -9,6 +9,7 @@ use App\Models\CookbookInvitation;
 use App\Models\User;
 use App\Services\CookbookSharing;
 use App\ValueObjects\CookbookGrants;
+use App\ValueObjects\CookbookInvitationData;
 use Filament\Actions\Testing\TestAction;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Support\Facades\Event;
@@ -205,7 +206,11 @@ class CookbookInvitationTest extends TestCase
         $owner = User::factory()->create(['admin' => false]);
         $cookbook = Cookbook::factory()->create(['author_id' => $owner->author_id]);
 
-        app(CookbookSharing::class)->share($cookbook, $owner->email, CookbookGrants::fromArray(['can_read' => true]), $owner);
+        app(CookbookSharing::class)->share($cookbook, new CookbookInvitationData(
+            email: $owner->email,
+            grants: CookbookGrants::fromArray(['can_read' => true]),
+            invitedBy: $owner,
+        ));
 
         $this->assertSame(0, $cookbook->members()->count());
     }
