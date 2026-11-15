@@ -11,6 +11,7 @@ use App\Models\CookbookInvitation;
 use App\Models\Recipe;
 use App\Models\User;
 use App\Services\CookbookSharing;
+use App\ValueObjects\CookbookGrants;
 use Illuminate\Support\Facades\Mail;
 use Livewire\Livewire;
 use Tests\TestCase;
@@ -29,7 +30,7 @@ class CookbookSharingTest extends TestCase
     {
         $cookbook ??= Cookbook::factory()->create();
 
-        $this->sharing()->addMember($cookbook, $member, $grants);
+        $this->sharing()->addMember($cookbook, $member, CookbookGrants::fromArray($grants));
 
         return $cookbook->refresh();
     }
@@ -197,7 +198,7 @@ class CookbookSharingTest extends TestCase
         $cookbook = Cookbook::factory()->create(['author_id' => $owner->author_id]);
         $invitee = User::factory()->create(['email' => 'friend@example.com']);
 
-        $this->sharing()->share($cookbook, 'friend@example.com', ['can_read' => true], $owner);
+        $this->sharing()->share($cookbook, 'friend@example.com', CookbookGrants::fromArray(['can_read' => true]), $owner);
 
         $this->assertTrue($cookbook->refresh()->grants($invitee, 'can_read'));
         Mail::assertNothingSent();
@@ -211,7 +212,7 @@ class CookbookSharingTest extends TestCase
         $cookbook = Cookbook::factory()->create(['author_id' => $owner->author_id]);
         $invitee = User::factory()->create(['email' => 'friend@example.com']);
 
-        $this->sharing()->share($cookbook, 'FRIEND@Example.com', ['can_read' => true], $owner);
+        $this->sharing()->share($cookbook, 'FRIEND@Example.com', CookbookGrants::fromArray(['can_read' => true]), $owner);
 
         $this->assertTrue($cookbook->refresh()->grants($invitee, 'can_read'));
     }
@@ -223,7 +224,7 @@ class CookbookSharingTest extends TestCase
         $owner = User::factory()->create(['admin' => false]);
         $cookbook = Cookbook::factory()->create(['author_id' => $owner->author_id]);
 
-        $this->sharing()->share($cookbook, 'stranger@example.com', ['can_read' => true], $owner);
+        $this->sharing()->share($cookbook, 'stranger@example.com', CookbookGrants::fromArray(['can_read' => true]), $owner);
 
         Mail::assertSent(CookbookInvitationMail::class);
 
@@ -240,7 +241,7 @@ class CookbookSharingTest extends TestCase
         $cookbook = Cookbook::factory()->create(['author_id' => $owner->author_id]);
 
         $member = User::factory()->create(['email' => 'member@example.com']);
-        $this->sharing()->addMember($cookbook, $member, ['can_update' => true]);
+        $this->sharing()->addMember($cookbook, $member, CookbookGrants::fromArray(['can_update' => true]));
 
         CookbookInvitation::factory()->create([
             'cookbook_id' => $cookbook->id,
@@ -282,7 +283,7 @@ class CookbookSharingTest extends TestCase
         $owner = User::factory()->create(['admin' => false]);
         $cookbook = Cookbook::factory()->create(['author_id' => $owner->author_id]);
 
-        $this->sharing()->share($cookbook, 'stranger@example.com', ['can_read' => true], $owner);
+        $this->sharing()->share($cookbook, 'stranger@example.com', CookbookGrants::fromArray(['can_read' => true]), $owner);
 
         $token = null;
 
