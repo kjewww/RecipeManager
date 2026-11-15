@@ -61,6 +61,22 @@ class Document implements \JsonSerializable
         return $this->disk()->mimeType($this->path);
     }
 
+    public function dataUri(): ?string
+    {
+        if (! $this->exists()) {
+            return null;
+        }
+
+        $binary = $this->disk()->get($this->path);
+        $mime = $this->mimeType();
+
+        if ($binary === null || ! is_string($mime)) {
+            return null;
+        }
+
+        return 'data:'.$mime.';base64,'.base64_encode($binary);
+    }
+
     public function isPreviewable(): bool
     {
         return match ($this->mimeType()) {

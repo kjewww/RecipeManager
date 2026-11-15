@@ -6,7 +6,6 @@ use App\Models\Ingredient;
 use App\Models\IngredientGroup;
 use App\Models\Recipe;
 use App\Services\Document;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 /**
@@ -110,22 +109,12 @@ class RecipeJsonExporter
 
         foreach ($recipe->photos as $document) {
             /** @var Document $document */
-            $path = $recipe->getKey().'/'.$document->name();
-
-            if (! Storage::disk('recipes')->exists($path)) {
-                continue;
+            if (($data = $document->dataUri()) !== null) {
+                $photos[] = [
+                    'filename' => $document->name(),
+                    'data' => $data,
+                ];
             }
-
-            $binary = Storage::disk('recipes')->get($path);
-
-            if ($binary === null) {
-                continue;
-            }
-
-            $photos[] = [
-                'filename' => $document->name(),
-                'data' => 'data:'.Storage::disk('recipes')->mimeType($path).';base64,'.base64_encode($binary),
-            ];
         }
 
         return $photos;
