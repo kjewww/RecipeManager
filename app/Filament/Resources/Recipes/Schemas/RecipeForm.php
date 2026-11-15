@@ -355,6 +355,42 @@ class RecipeForm
             ->max('position') + 1;
     }
 
+    /**
+     * ✅ AFTER (Extract Method): the ungrouped repeater and the repeater inside an
+     * ingredient group were near copies of each other. They now share this builder;
+     * only the ungrouped one clears its ingredient_group_id on save.
+     *
+     * @param  bool  $ungrouped  True for ingredients outside any group (ingredient_group_id = null).
+     */
+    private static function ingredientRepeater(string $name, string $label, bool $ungrouped = false): Repeater
+    {
+        $repeater = Repeater::make($name)
+            ->label($label)
+            ->relationship($name)
+            ->orderColumn('position')
+            ->reorderable()
+            ->extraItemActions([self::alternativesAction(), self::moveIngredientAction()])
+            ->table(self::ingredientTableColumns())
+            ->schema(self::ingredientFields())
+            ->columnSpanFull();
+
+        if ($ungrouped) {
+            $repeater
+                ->mutateRelationshipDataBeforeCreateUsing(function (array $data): array {
+                    $data['ingredient_group_id'] = null;
+
+                    return $data;
+                })
+                ->mutateRelationshipDataBeforeSaveUsing(function (array $data): array {
+                    $data['ingredient_group_id'] = null;
+
+                    return $data;
+                });
+        }
+
+        return $repeater;
+    }
+
     public static function configure(Schema $schema): Schema
     {
         return $schema
@@ -474,25 +510,12 @@ class RecipeForm
                     ->visibility('private')
                     ->visibleOn('edit')
                     ->columnSpanFull(),
-                Repeater::make('ungroupedIngredients')
-                    ->label(__('Ingredients without group'))
-                    ->relationship('ungroupedIngredients')
-                    ->orderColumn('position')
-                    ->mutateRelationshipDataBeforeCreateUsing(function (array $data): array {
-                        $data['ingredient_group_id'] = null;
-
-                        return $data;
-                    })
-                    ->mutateRelationshipDataBeforeSaveUsing(function (array $data): array {
-                        $data['ingredient_group_id'] = null;
-
-                        return $data;
-                    })
-                    ->reorderable()
-                    ->extraItemActions([self::alternativesAction(), self::moveIngredientAction()])
-                    ->table(self::ingredientTableColumns())
-                    ->schema(self::ingredientFields())
-                    ->columnSpanFull(),
+                // ✅ AFTER (Extract Method): shared with the repeater inside a group.
+                self::ingredientRepeater(
+                    'ungroupedIngredients',
+                    __('Ingredients without group'),
+                    ungrouped: true,
+                ),
                 Section::make(__('Ingredient groups'))
                     ->schema([
                         Repeater::make('ingredientGroups')
@@ -506,15 +529,11 @@ class RecipeForm
                                 TextInput::make('name')
                                     ->required()
                                     ->maxLength(20),
-                                Repeater::make('topLevelIngredients')
-                                    ->label(__('Ingredients'))
-                                    ->relationship('topLevelIngredients')
-                                    ->orderColumn('position')
-                                    ->reorderable()
-                                    ->extraItemActions([self::alternativesAction(), self::moveIngredientAction()])
-                                    ->table(self::ingredientTableColumns())
-                                    ->schema(self::ingredientFields())
-                                    ->columnSpanFull(),
+                                // ✅ AFTER (Extract Method): no longer a copy of the block above.
+                                self::ingredientRepeater(
+                                    'topLevelIngredients',
+                                    __('Ingredients'),
+                                ),
                             ])
                             ->columnSpanFull(),
                     ])
