@@ -3,8 +3,8 @@
 namespace App\Filament\Resources\Cookbooks\RelationManagers;
 
 use App\Models\Cookbook;
-use App\Models\CookbookMembership;
 use App\Services\CookbookSharing;
+use App\ValueObjects\CookbookGrants;
 use Filament\Actions\Action;
 use Filament\Actions\DetachAction;
 use Filament\Actions\EditAction;
@@ -118,7 +118,7 @@ class MembersRelationManager extends RelationManager
                         /** @var Cookbook $cookbook */
                         $cookbook = $this->getOwnerRecord();
 
-                        $cookbook->members()->updateExistingPivot($record->getKey(), $this->grantsFrom($data));
+                        $cookbook->members()->updateExistingPivot($record->getKey(), $this->grantsFrom($data)->toArray());
 
                         return $record;
                     }),
@@ -129,16 +129,9 @@ class MembersRelationManager extends RelationManager
 
     /**
      * @param  array<string, mixed>  $data
-     * @return array<string, bool>
      */
-    private function grantsFrom(array $data): array
+    private function grantsFrom(array $data): CookbookGrants
     {
-        $grants = [];
-
-        foreach (CookbookMembership::GRANTS as $grant) {
-            $grants[$grant] = (bool) ($data[$grant] ?? false);
-        }
-
-        return $grants;
+        return CookbookGrants::fromArray($data);
     }
 }

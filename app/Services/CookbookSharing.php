@@ -5,8 +5,8 @@ namespace App\Services;
 use App\Mail\CookbookInvitationMail;
 use App\Models\Cookbook;
 use App\Models\CookbookInvitation;
-use App\Models\CookbookMembership;
 use App\Models\User;
+use App\ValueObjects\CookbookGrants;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 
@@ -20,10 +20,8 @@ class CookbookSharing
      *
      * Returns nothing on purpose: the caller must not be able to tell whether the
      * address belongs to an account.
-     *
-     * @param  array<string, bool>  $grants
      */
-    public function share(Cookbook $cookbook, string $email, array $grants, User $invitedBy): void
+    public function share(Cookbook $cookbook, string $email, CookbookGrants $grants, User $invitedBy): void
     {
         $email = mb_strtolower(trim($email));
 
@@ -38,10 +36,7 @@ class CookbookSharing
         $this->invite($cookbook, $email, $grants, $invitedBy);
     }
 
-    /**
-     * @param  array<string, bool>  $grants
-     */
-    public function addMember(Cookbook $cookbook, User $user, array $grants): void
+    public function addMember(Cookbook $cookbook, User $user, CookbookGrants $grants): void
     {
         // The owner already holds every grant; a membership row would be meaningless.
         if ($cookbook->isOwnedBy($user)) {
@@ -49,21 +44,18 @@ class CookbookSharing
         }
 
         $cookbook->members()->syncWithoutDetaching([
-            $user->getKey() => $this->normalise($grants),
+            $user->getKey() => $grants->toArray(),
         ]);
     }
 
-    /**
-     * @param  array<string, bool>  $grants
-     */
-    private function invite(Cookbook $cookbook, string $email, array $grants, User $invitedBy): void
+    private function invite(Cookbook $cookbook, string $email, CookbookGrants $grants, User $invitedBy): void
     {
         $token = CookbookInvitation::newToken();
 
         $invitation = $cookbook->invitations()->updateOrCreate(
             ['email' => $email],
             [
-                ...$this->normalise($grants),
+                ...$grants->toArray(),
                 'invited_by_user_id' => $invitedBy->getKey(),
                 'token_hash' => CookbookInvitation::hash($token),
                 'expires_at' => now()->addDays(self::EXPIRES_AFTER_DAYS),
@@ -85,7 +77,11 @@ class CookbookSharing
         }
 
         DB::transaction(function () use ($invitation, $user): void {
-            $this->addMember($invitation->cookbook, $user, $invitation->grants());
+            $this->addMember(
+                $invitation->cookbook,
+                $user,
+                CookbookGrants::fromArray($invitation->grants()),
+            );
 
             $invitation->forceFill(['accepted_at' => now()])->save();
         });
@@ -103,25 +99,5 @@ class CookbookSharing
             ->whereRaw('LOWER(email) = ?', [mb_strtolower($user->email)])
             ->with('cookbook')
             ->each(fn (CookbookInvitation $invitation) => $this->accept($invitation, $user));
-    }
-
-    /**
-     * @param  array<string, bool>  $grants
-     * @return array<string, bool>
-     */
-    private function normalise(array $grants): array
-    {
-        $normalised = [];
-
-        foreach (CookbookMembership::GRANTS as $grant) {
-            $normalised[$grant] = (bool) ($grants[$grant] ?? false);
-        }
-
-        // Read access is implied by every other grant.
-        if (array_filter($normalised)) {
-            $normalised['can_read'] = true;
-        }
-
-        return $normalised;
     }
 }
