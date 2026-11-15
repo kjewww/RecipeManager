@@ -205,7 +205,7 @@ class RecipeImporter
         $stored = [];
 
         foreach ($parsed->photos as $index => $photo) {
-            $decoded = $this->decodePhoto($photo['data']);
+            $decoded = $this->decodePhoto($photo->data);
 
             if ($decoded === null) {
                 continue;
@@ -214,7 +214,7 @@ class RecipeImporter
             [$binary, $extension] = $decoded;
 
             $filename = Str::slug(
-                pathinfo($photo['filename'], PATHINFO_FILENAME) ?: $recipe->name.'-'.($index + 1)
+                pathinfo($photo->filename, PATHINFO_FILENAME) ?: $recipe->name.'-'.($index + 1)
             ).'.'.$extension;
 
             Storage::disk('recipes')->put($recipe->getKey().'/'.$filename, $binary);
