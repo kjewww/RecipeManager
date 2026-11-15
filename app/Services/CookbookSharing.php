@@ -7,6 +7,7 @@ use App\Models\Cookbook;
 use App\Models\CookbookInvitation;
 use App\Models\User;
 use App\ValueObjects\CookbookGrants;
+use App\ValueObjects\CookbookInvitationData;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 
@@ -21,19 +22,19 @@ class CookbookSharing
      * Returns nothing on purpose: the caller must not be able to tell whether the
      * address belongs to an account.
      */
-    public function share(Cookbook $cookbook, string $email, CookbookGrants $grants, User $invitedBy): void
+    public function share(Cookbook $cookbook, CookbookInvitationData $invitation): void
     {
-        $email = mb_strtolower(trim($email));
+        $email = mb_strtolower(trim($invitation->email));
 
         $user = User::query()->whereRaw('LOWER(email) = ?', [$email])->first();
 
         if ($user !== null) {
-            $this->addMember($cookbook, $user, $grants);
+            $this->addMember($cookbook, $user, $invitation->grants);
 
             return;
         }
 
-        $this->invite($cookbook, $email, $grants, $invitedBy);
+        $this->invite($cookbook, $invitation);
     }
 
     public function addMember(Cookbook $cookbook, User $user, CookbookGrants $grants): void
@@ -48,22 +49,23 @@ class CookbookSharing
         ]);
     }
 
-    private function invite(Cookbook $cookbook, string $email, CookbookGrants $grants, User $invitedBy): void
+    private function invite(Cookbook $cookbook, CookbookInvitationData $invitation): void
     {
         $token = CookbookInvitation::newToken();
+        $email = mb_strtolower(trim($invitation->email));
 
-        $invitation = $cookbook->invitations()->updateOrCreate(
+        $invitationModel = $cookbook->invitations()->updateOrCreate(
             ['email' => $email],
             [
-                ...$grants->toArray(),
-                'invited_by_user_id' => $invitedBy->getKey(),
+                ...$invitation->grants->toArray(),
+                'invited_by_user_id' => $invitation->invitedBy->getKey(),
                 'token_hash' => CookbookInvitation::hash($token),
                 'expires_at' => now()->addDays(self::EXPIRES_AFTER_DAYS),
                 'accepted_at' => null,
             ],
         );
 
-        Mail::to($email)->send(new CookbookInvitationMail($invitation, $token));
+        Mail::to($email)->send(new CookbookInvitationMail($invitationModel, $token));
     }
 
     /**
