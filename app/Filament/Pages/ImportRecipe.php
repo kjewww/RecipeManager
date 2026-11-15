@@ -354,12 +354,39 @@ class ImportRecipe extends Page
         }
     }
 
+    // ✅ AFTER (Extract Method): import() now only sequences the steps.
     public function import(): void
     {
         $this->form->validate();
 
         $parsed = $this->parse();
 
+        try {
+            $recipe = app(RecipeImporter::class)->import(
+                $parsed,
+                user(),
+                $this->buildDecisions(),
+            );
+        } catch (ValidationException $exception) {
+            $this->reportImportFailure($exception);
+        }
+
+        Notification::make()
+            ->success()
+            ->title(__('Recipe imported'))
+            ->body($recipe->name)
+            ->send();
+
+        $this->redirect(RecipeResource::getUrl('edit', ['record' => $recipe]));
+    }
+
+    /**
+     * ✅ AFTER (Extract Method): turns the review state into lookup decisions.
+     *
+     * @return array<string, int|null>
+     */
+    private function buildDecisions(): array
+    {
         $resolver = app(RelationResolver::class);
         $decisions = [];
 
@@ -397,30 +424,26 @@ class ImportRecipe extends Page
             $decisions[$item['key']] = (int) $id;
         }
 
-        try {
-            $recipe = app(RecipeImporter::class)->import($parsed, user(), $decisions);
-        } catch (ValidationException $exception) {
-            $messages = $exception->validator->errors()->all();
+        return $decisions;
+    }
 
-            Notification::make()
-                ->danger()
-                ->title(__('Recipe could not be imported'))
-                ->body(implode(' ', $messages))
-                ->persistent()
-                ->send();
-
-            throw ValidationException::withMessages([
-                'data.json' => $messages,
-            ]);
-        }
+    /**
+     * ✅ AFTER (Extract Method): shows the failure notification and rethrows.
+     */
+    private function reportImportFailure(ValidationException $exception): never
+    {
+        $messages = $exception->validator->errors()->all();
 
         Notification::make()
-            ->success()
-            ->title(__('Recipe imported'))
-            ->body($recipe->name)
+            ->danger()
+            ->title(__('Recipe could not be imported'))
+            ->body(implode(' ', $messages))
+            ->persistent()
             ->send();
 
-        $this->redirect(RecipeResource::getUrl('edit', ['record' => $recipe]));
+        throw ValidationException::withMessages([
+            'data.json' => $messages,
+        ]);
     }
 
     /**
