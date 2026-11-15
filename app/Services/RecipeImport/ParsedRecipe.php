@@ -8,7 +8,7 @@ class ParsedRecipe
      * @param  array<int, string>  $tags
      * @param  array<int, ParsedIngredient>  $ingredients
      * @param  array<int, ParsedGroup>  $groups
-     * @param  array<int, array{filename: string, data: string}>  $photos
+     * @param  array<int, ParsedPhoto>  $photos
      */
     public function __construct(
         public readonly string $name,
@@ -58,11 +58,8 @@ class ParsedRecipe
         $photos = [];
 
         foreach (self::wrap($data['photos'] ?? []) as $photo) {
-            if (is_array($photo) && is_string($photo['data'] ?? null)) {
-                $photos[] = [
-                    'filename' => trim((string) ($photo['filename'] ?? '')),
-                    'data' => $photo['data'],
-                ];
+            if (is_array($photo) && ($parsedPhoto = ParsedPhoto::fromArray($photo)) !== null) {
+                $photos[] = $parsedPhoto;
             }
         }
 
