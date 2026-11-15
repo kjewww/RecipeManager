@@ -23,6 +23,26 @@ class Document implements \JsonSerializable
         return $this->disk()->exists($this->path);
     }
 
+    /**
+     * The file contents as a base64 data URI, or null when the file is missing
+     * or its MIME type cannot be determined.
+     */
+    public function dataUri(): ?string
+    {
+        if (! $this->exists()) {
+            return null;
+        }
+
+        $binary = $this->disk()->get($this->path);
+        $mime = $this->mimeType();
+
+        if ($binary === null || ! is_string($mime)) {
+            return null;
+        }
+
+        return 'data:'.$mime.';base64,'.base64_encode($binary);
+    }
+
     public function name(bool $urlencode = false): string
     {
         $name = basename($this->path);
