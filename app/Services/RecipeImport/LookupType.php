@@ -2,13 +2,6 @@
 
 namespace App\Services\RecipeImport;
 
-use App\Models\Author;
-use App\Models\Category;
-use App\Models\Cookbook;
-use App\Models\Food;
-use App\Models\IngredientAttribute;
-use App\Models\Tag;
-use App\Models\Unit;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -24,19 +17,27 @@ enum LookupType: string
     case Author = 'author';
 
     /**
+     * The only remaining match: pick the class that knows the rest.
+     */
+    public function definition(): LookupDefinition
+    {
+        return match ($this) {
+            self::Food => new FoodLookup,
+            self::Unit => new UnitLookup,
+            self::Tag => new TagLookup,
+            self::Category => new CategoryLookup,
+            self::Cookbook => new CookbookLookup,
+            self::Attribute => new AttributeLookup,
+            self::Author => new AuthorLookup,
+        };
+    }
+
+    /**
      * @return class-string<Model>
      */
     public function model(): string
     {
-        return match ($this) {
-            self::Food => Food::class,
-            self::Unit => Unit::class,
-            self::Tag => Tag::class,
-            self::Category => Category::class,
-            self::Cookbook => Cookbook::class,
-            self::Attribute => IngredientAttribute::class,
-            self::Author => Author::class,
-        };
+        return $this->definition()->model();
     }
 
     /**
@@ -46,41 +47,17 @@ enum LookupType: string
      */
     public function query(): Builder
     {
-        return match ($this) {
-            self::Food => Food::query()->withTrashed(),
-            self::Unit => Unit::query()->withTrashed(),
-            self::Tag => Tag::query()->withTrashed(),
-            self::Category => Category::query()->withTrashed(),
-            self::Cookbook => Cookbook::query()->withTrashed(),
-            self::Attribute => IngredientAttribute::query()->withTrashed(),
-            self::Author => Author::query()->withTrashed(),
-        };
+        return $this->definition()->query();
     }
 
     public function label(): string
     {
-        return match ($this) {
-            self::Food => __('Food'),
-            self::Unit => __('Unit'),
-            self::Tag => __('Tag'),
-            self::Category => __('Category'),
-            self::Cookbook => __('Cookbook'),
-            self::Attribute => __('Ingredient attribute'),
-            self::Author => __('Author'),
-        };
+        return $this->definition()->label();
     }
 
     public function maxLength(): int
     {
-        return match ($this) {
-            self::Food => RecipeJsonSchema::MAX_FOOD_NAME,
-            self::Unit => RecipeJsonSchema::MAX_UNIT_NAME,
-            self::Tag => RecipeJsonSchema::MAX_TAG_NAME,
-            self::Category => RecipeJsonSchema::MAX_CATEGORY_NAME,
-            self::Cookbook => RecipeJsonSchema::MAX_COOKBOOK_NAME,
-            self::Attribute => RecipeJsonSchema::MAX_ATTRIBUTE_NAME,
-            self::Author => RecipeJsonSchema::MAX_AUTHOR_NAME,
-        };
+        return $this->definition()->maxLength();
     }
 
     /**
@@ -89,10 +66,7 @@ enum LookupType: string
      */
     public function isOptional(): bool
     {
-        return match ($this) {
-            self::Unit, self::Attribute, self::Tag => true,
-            default => false,
-        };
+        return $this->definition()->isOptional();
     }
 
     /**
@@ -101,14 +75,6 @@ enum LookupType: string
      */
     public function canBeCreatedBy(?User $user): bool
     {
-        if ($user === null) {
-            return false;
-        }
-
-        return match ($this) {
-            self::Cookbook, self::Category => true,
-            self::Author => false,
-            default => (bool) $user->admin,
-        };
+        return $this->definition()->canBeCreatedBy($user);
     }
 }
